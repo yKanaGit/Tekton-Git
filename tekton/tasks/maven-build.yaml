@@ -8,7 +8,7 @@ spec:
   - name: goals
     description: Maven goals to execute
     type: string
-    default: "clean package -DskipTests"
+    default: "clean package -Dmaven.test.skip=true"
   workspaces:
   - name: source
     description: Workspace containing the source code
