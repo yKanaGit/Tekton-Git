@@ -17,7 +17,7 @@ spec:
     description: The git repo will be cloned onto this workspace
   steps:
   - name: clone
-    image: gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init:latest
+    image: alpine/git:latest
     script: |
       #!/bin/sh
       set -e
