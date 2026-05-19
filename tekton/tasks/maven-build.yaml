@@ -20,6 +20,6 @@ spec:
       #!/bin/bash
       set -e
       echo "Running Maven build with goals: $(params.goals)"
-      ./mvnw $(params.goals)
+      mvn $(params.goals)
       echo "Build completed successfully"
       ls -la target/
