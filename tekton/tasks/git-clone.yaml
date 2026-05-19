@@ -23,5 +23,11 @@ spec:
       set -e
       echo "Cloning $(params.url) at revision $(params.revision)"
       cd $(workspaces.output.path)
+
+      # Clean up existing files if any
+      rm -rf .git
+      rm -rf *
+      rm -rf .[!.]*
+
       git clone --depth 1 --branch $(params.revision) $(params.url) .
       echo "Clone completed successfully"
