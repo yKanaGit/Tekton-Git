@@ -1,0 +1,27 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: build-deploy-run-
+spec:
+  pipelineRef:
+    name: build-deploy-pipeline
+  params:
+  - name: git-url
+    value: https://github.com/yKanaGit/Tekton-Git.git
+  - name: git-revision
+    value: main
+  - name: image-name
+    value: image-registry.openshift-image-registry.svc:5000/tekton-demo/quarkus-demo
+  - name: image-tag
+    value: v1.0.0
+  - name: namespace
+    value: tekton-demo
+  workspaces:
+  - name: shared-workspace
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi

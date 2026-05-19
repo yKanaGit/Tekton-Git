@@ -46,3 +46,6 @@ nbdist/
 *.tmp
 *.bak
 *~
+
+# Tekton custom runs (examples/ directory contains templates)
+/pipelinerun-*.yaml

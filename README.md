@@ -71,6 +71,10 @@ Tekton-Git/
 │       ├── trigger-template.yaml
 │       ├── event-listener.yaml
 │       └── event-listener-route.yaml
+├── examples/               # サンプルファイル
+│   └── pipelinerun-manual.yaml
+├── docs/                   # ドキュメント
+│   └── RESOURCE_OPTIMIZATION.md
 ├── setup.sh                # セットアップスクリプト
 └── README.md
 ```
@@ -164,6 +168,15 @@ git push origin main
 プッシュ後、Tekton パイプラインが自動的に起動します。
 
 ### 方法2: 手動でパイプラインを実行
+
+サンプルファイルを使用する場合：
+
+```bash
+# サンプルファイルを使用
+oc create -f examples/pipelinerun-manual.yaml
+```
+
+または、YAML を直接指定：
 
 ```bash
 oc create -f - <<EOF
