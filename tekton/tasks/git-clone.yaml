@@ -21,7 +21,12 @@ spec:
     script: |
       #!/bin/sh
       set -e
-      echo "Cloning $(params.url) at revision $(params.revision)"
+
+      # Extract branch name from refs/heads/xxx or use as-is
+      REVISION="$(params.revision)"
+      BRANCH="${REVISION#refs/heads/}"
+
+      echo "Cloning $(params.url) at revision ${BRANCH}"
       cd $(workspaces.output.path)
 
       # Clean up existing files if any
@@ -29,5 +34,5 @@ spec:
       rm -rf *
       rm -rf .[!.]*
 
-      git clone --depth 1 --branch $(params.revision) $(params.url) .
+      git clone --depth 1 --branch "${BRANCH}" $(params.url) .
       echo "Clone completed successfully"
