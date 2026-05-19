@@ -1,0 +1,39 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: deploy
+spec:
+  description: Deploy application to OpenShift
+  params:
+  - name: image
+    description: Image reference to deploy
+    type: string
+  - name: namespace
+    description: Target namespace
+    type: string
+  workspaces:
+  - name: source
+    description: Workspace containing k8s manifests
+  steps:
+  - name: patch-deployment
+    image: quay.io/openshift/origin-cli:latest
+    workingDir: $(workspaces.source.path)
+    script: |
+      #!/bin/bash
+      set -e
+
+      echo "Updating deployment image to $(params.image)"
+
+      # Replace NAMESPACE placeholder in deployment
+      sed -i "s|NAMESPACE|$(params.namespace)|g" k8s/deployment.yaml
+      sed -i "s|:latest|:$(params.image)|g" k8s/deployment.yaml
+
+      # Apply manifests
+      oc apply -f k8s/deployment.yaml -n $(params.namespace)
+      oc apply -f k8s/service.yaml -n $(params.namespace)
+      oc apply -f k8s/route.yaml -n $(params.namespace)
+
+      echo "Waiting for rollout to complete"
+      oc rollout status deployment/quarkus-demo -n $(params.namespace) --timeout=5m
+
+      echo "Deployment completed successfully"

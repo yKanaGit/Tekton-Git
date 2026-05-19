@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quarkus-demo
+  labels:
+    app: quarkus-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quarkus-demo
+  template:
+    metadata:
+      labels:
+        app: quarkus-demo
+    spec:
+      containers:
+      - name: quarkus-demo
+        image: image-registry.openshift-image-registry.svc:5000/NAMESPACE/quarkus-demo:latest
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        env:
+        - name: JAVA_OPTIONS
+          value: "-Dquarkus.http.host=0.0.0.0"
+        resources:
+          limits:
+            memory: 512Mi
+            cpu: 500m
+          requests:
+            memory: 256Mi
+            cpu: 100m
+        livenessProbe:
+          httpGet:
+            path: /q/health/live
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /q/health/ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
