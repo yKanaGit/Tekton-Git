@@ -13,7 +13,8 @@ https://github.com/yKanaGit/Tekton-Git
 - `oc` CLI がインストール済み（バージョン確認: `oc version`）
 - `tkn` CLI がインストール済み（オプション、パイプライン管理用）
 - Git がインストール済み
-- **管理者権限または SCC 設定権限**（buildah タスクに privileged SCC を付与するため）
+- **管理者権限または SCC 設定権限**（推奨 - buildah タスクに privileged SCC を付与するため）
+  - setup.sh が自動で設定を試みますが、権限がない場合は手動設定が必要です
 
 ## 🏗️ アーキテクチャ
 
@@ -88,8 +89,8 @@ Tekton-Git/
 1. リポジトリをクローン
 2. OpenShift にログイン
 3. プロジェクト作成
-4. Tekton リソースをデプロイ（setup.sh）
-5. **⚠️ SCC 設定（重要！）**
+4. Tekton リソースをデプロイ（setup.sh - SCC 設定も自動試行）
+5. SCC 設定の確認（必要に応じて手動設定）
 6. Webhook URL の確認
 7. GitHub Webhook の設定
 8. 動作確認
@@ -136,10 +137,21 @@ oc project
 - ✅ Pipeline の作成（build-deploy-pipeline）
 - ✅ Triggers の作成（TriggerBinding, TriggerTemplate, EventListener）
 - ✅ Webhook 用の Route 作成（github-webhook）
+- ✅ **SCC 設定の自動試行**（管理者権限がある場合）
 
-### 5. SecurityContextConstraints (SCC) の設定（重要！）
+### 5. SecurityContextConstraints (SCC) の確認（重要！）
 
-buildah タスクがコンテナイメージをビルドするために、`privileged` 権限が必要です：
+**setup.sh は自動的に SCC 設定を試みます**が、管理者権限が必要です。
+
+スクリプト実行時に以下のメッセージが表示された場合は、手動で設定してください：
+
+```
+⚠ Could not configure SCC (requires admin privileges)
+  Please run manually:
+  oc adm policy add-scc-to-user privileged -z pipeline
+```
+
+**手動設定コマンド:**
 
 ```bash
 # pipeline サービスアカウントに privileged SCC を付与
@@ -149,7 +161,10 @@ oc adm policy add-scc-to-user privileged -z pipeline
 oc get scc privileged -o yaml | grep -A 5 users
 ```
 
-**注意:** この手順を省略すると、buildah タスクが以下のエラーで失敗します：
+**なぜ必要？**
+
+buildah タスクがコンテナイメージをビルドするために `privileged` 権限が必要です。この設定を省略すると、buildah タスクが以下のエラーで失敗します：
+
 ```
 PodAdmissionFailed: Privileged containers are not allowed
 ```

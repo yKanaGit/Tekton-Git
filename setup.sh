@@ -77,11 +77,35 @@ else
 fi
 echo ""
 
+echo -e "${GREEN}Step 5: Configuring SecurityContextConstraints (SCC)...${NC}"
+echo -e "${YELLOW}Note: This step requires cluster admin privileges${NC}"
+
+# Try to add privileged SCC to pipeline serviceaccount
+if oc adm policy add-scc-to-user privileged -z pipeline 2>/dev/null; then
+    echo -e "${GREEN}✓ Privileged SCC granted to pipeline serviceaccount${NC}"
+    SCC_CONFIGURED=true
+else
+    echo -e "${YELLOW}⚠ Could not configure SCC (requires admin privileges)${NC}"
+    echo -e "${YELLOW}  Please run manually:${NC}"
+    echo -e "  ${YELLOW}oc adm policy add-scc-to-user privileged -z pipeline${NC}"
+    SCC_CONFIGURED=false
+fi
+echo ""
+
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}Setup Complete!${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
 echo -e "${YELLOW}Next Steps:${NC}"
+
+# Show SCC warning if not configured
+if [ "$SCC_CONFIGURED" = false ]; then
+    echo -e "${RED}⚠ IMPORTANT: Configure SCC before running pipelines!${NC}"
+    echo -e "   ${YELLOW}oc adm policy add-scc-to-user privileged -z pipeline${NC}"
+    echo -e "   ${YELLOW}Without this, buildah task will fail with 'PodAdmissionFailed' error${NC}"
+    echo ""
+fi
+
 echo -e "1. Configure GitHub webhook:"
 echo -e "   - Go to your GitHub repository > Settings > Webhooks"
 echo -e "   - Payload URL: https://${WEBHOOK_URL}"
