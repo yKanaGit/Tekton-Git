@@ -22,16 +22,17 @@ spec:
       #!/bin/bash
       set -e
 
-      echo "Updating deployment image to $(params.image)"
+      echo "Updating deployment image to image-registry.openshift-image-registry.svc:5000/$(params.namespace)/quarkus-demo:$(params.image)"
 
-      # Replace NAMESPACE placeholder in deployment
-      sed -i "s|NAMESPACE|$(params.namespace)|g" k8s/deployment.yaml
-      sed -i "s|:latest|:$(params.image)|g" k8s/deployment.yaml
-
-      # Apply manifests
-      oc apply -f k8s/deployment.yaml -n $(params.namespace)
+      # Apply service and route first (they don't change)
       oc apply -f k8s/service.yaml -n $(params.namespace)
       oc apply -f k8s/route.yaml -n $(params.namespace)
+
+      # Update deployment with correct image using oc set image
+      oc apply -f k8s/deployment.yaml -n $(params.namespace)
+      oc set image deployment/quarkus-demo \
+        quarkus-demo=image-registry.openshift-image-registry.svc:5000/$(params.namespace)/quarkus-demo:$(params.image) \
+        -n $(params.namespace)
 
       echo "Waiting for rollout to complete"
       oc rollout status deployment/quarkus-demo -n $(params.namespace) --timeout=5m
