@@ -1,0 +1,37 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: maven-build
+spec:
+  description: Build Maven project
+  params:
+  - name: goals
+    description: Maven goals to execute
+    type: string
+    default: "clean package -DskipTests"
+  workspaces:
+  - name: source
+    description: Workspace containing the source code
+  steps:
+  - name: mvn-build
+    image: maven:3.8-openjdk-17
+    workingDir: $(workspaces.source.path)/app
+    # リソース制限を追加
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "500m"      # 0.5 CPU コア
+      limits:
+        memory: "2Gi"
+        cpu: "2000m"     # 最大 2 CPU コア
+    script: |
+      #!/bin/bash
+      set -e
+      echo "Running Maven build with goals: $(params.goals)"
+
+      # Maven のメモリ設定を最適化
+      export MAVEN_OPTS="-Xmx1536m -XX:+UseParallelGC"
+
+      ./mvnw $(params.goals)
+      echo "Build completed successfully"
+      ls -la target/
