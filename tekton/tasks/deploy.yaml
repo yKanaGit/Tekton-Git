@@ -22,7 +22,23 @@ spec:
       #!/bin/bash
       set -e
 
-      echo "Updating deployment image to image-registry.openshift-image-registry.svc:5000/$(params.namespace)/quarkus-demo:$(params.image)"
+      APP_NAME="shipper-onboarding-api"
+      IMAGE_REF="image-registry.openshift-image-registry.svc:5000/$(params.namespace)/${APP_NAME}:$(params.image)"
+
+      echo "Updating deployment image to ${IMAGE_REF}"
+
+      # Apply PostgreSQL if not exists
+      if ! oc get secret postgresql-secret -n $(params.namespace) &>/dev/null; then
+        echo "Creating PostgreSQL secret..."
+        oc apply -f k8s/postgresql-secret.yaml -n $(params.namespace)
+      fi
+
+      if ! oc get deployment postgresql -n $(params.namespace) &>/dev/null; then
+        echo "Creating PostgreSQL deployment..."
+        oc apply -f k8s/postgresql-deployment.yaml -n $(params.namespace)
+        echo "Waiting for PostgreSQL to be ready..."
+        oc wait --for=condition=available --timeout=300s deployment/postgresql -n $(params.namespace) || true
+      fi
 
       # Apply service and route first (they don't change)
       oc apply -f k8s/service.yaml -n $(params.namespace)
@@ -30,11 +46,11 @@ spec:
 
       # Update deployment with correct image using oc set image
       oc apply -f k8s/deployment.yaml -n $(params.namespace)
-      oc set image deployment/quarkus-demo \
-        quarkus-demo=image-registry.openshift-image-registry.svc:5000/$(params.namespace)/quarkus-demo:$(params.image) \
+      oc set image deployment/${APP_NAME} \
+        ${APP_NAME}=${IMAGE_REF} \
         -n $(params.namespace)
 
       echo "Waiting for rollout to complete"
-      oc rollout status deployment/quarkus-demo -n $(params.namespace) --timeout=5m
+      oc rollout status deployment/${APP_NAME} -n $(params.namespace) --timeout=5m
 
       echo "Deployment completed successfully"

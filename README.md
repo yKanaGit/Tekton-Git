@@ -1,6 +1,6 @@
-# Tekton CI/CD Pipeline for Quarkus on OpenShift
+# Tekton CI/CD Pipeline for Logistics Platform on OpenShift
 
-OpenShift Pipelines (Tekton) を使用して、GitHub からの push イベントで自動的に Quarkus アプリケーションをビルド・デプロイする CI/CD パイプラインです。
+OpenShift Pipelines (Tekton) を使用して、GitHub からの push イベントで自動的に物流プラットフォームアプリケーション（Shipper Onboarding API）をビルド・デプロイする CI/CD パイプラインです。
 
 ## 📦 リポジトリ
 
@@ -46,20 +46,26 @@ PipelineRun
 
 ```
 Tekton-Git/
-├── app/                    # Quarkus アプリケーション
+├── app/                    # Shipper Onboarding API (Quarkus)
 │   ├── pom.xml
 │   └── src/
 │       ├── main/
-│       │   ├── java/com/example/demo/
-│       │   │   └── GreetingResource.java
+│       │   ├── java/com/example/logistics/
+│       │   │   ├── ShipperResource.java
+│       │   │   ├── Shipper.java
+│       │   │   └── ShipperRepository.java
 │       │   ├── resources/
+│       │   │   ├── application.properties
+│       │   │   └── db/migration/
 │       │   └── docker/
 │       │       └── Dockerfile.jvm
 │       └── test/
 ├── k8s/                    # OpenShift デプロイメント定義
 │   ├── deployment.yaml
 │   ├── service.yaml
-│   └── route.yaml
+│   ├── route.yaml
+│   ├── postgresql-deployment.yaml
+│   └── postgresql-secret.yaml
 ├── tekton/
 │   ├── tasks/              # Tekton タスク定義
 │   │   ├── git-clone.yaml
@@ -243,7 +249,7 @@ spec:
   - name: git-revision
     value: main
   - name: image-name
-    value: image-registry.openshift-image-registry.svc:5000/$(oc project -q)/quarkus-demo
+    value: image-registry.openshift-image-registry.svc:5000/$(oc project -q)/shipper-onboarding-api
   - name: image-tag
     value: manual-$(date +%Y%m%d-%H%M%S)
   - name: namespace
@@ -289,23 +295,40 @@ OpenShift Console にログインして以下にアクセス：
 
 ```bash
 # Route URL を取得
-APP_URL=$(oc get route quarkus-demo -o jsonpath='{.spec.host}')
+APP_URL=$(oc get route shipper-onboarding-api -o jsonpath='{.spec.host}')
 echo "Application URL: https://${APP_URL}"
 
-# curl でアクセス
-curl https://${APP_URL}/hello
+# curl でアクセス（ヘルスチェック）
+curl https://${APP_URL}/q/health/live
 
-# 期待される出力
-# Hello from Quarkus on OpenShift!
+# Shipper API エンドポイント
+curl https://${APP_URL}/api/shippers
 ```
 
-ブラウザで `https://<route-url>/hello` にアクセスして動作を確認できます。
+ブラウザで `https://<route-url>/api/shippers` にアクセスして動作を確認できます。
+
+## 🏢 アプリケーション概要
+
+このプロジェクトは、物流プラットフォームの一部である **Shipper Onboarding API** を自動デプロイします。
+
+**主な機能:**
+- 運送会社（Shipper）情報の登録・管理
+- PostgreSQL データベースとの連携
+- Flyway によるデータベースマイグレーション
+- RESTful API エンドポイント
+- SmallRye Health による健全性チェック
+
+**技術スタック:**
+- Quarkus (RESTEasy Reactive, Hibernate ORM with Panache)
+- PostgreSQL 15
+- Flyway (Database Migration)
+- Maven
 
 ## 🔧 カスタマイズ
 
 ### アプリケーションコードの変更
 
-`app/src/main/java/com/example/demo/GreetingResource.java` を編集して、レスポンスをカスタマイズできます。
+`app/src/main/java/com/example/logistics/` 配下のファイルを編集して、ビジネスロジックをカスタマイズできます。
 
 ### イメージレジストリの変更
 
@@ -413,17 +436,24 @@ oc describe scc privileged | grep Users
 
 ```bash
 # Deployment の状態を確認
-oc get deployment quarkus-demo
+oc get deployment shipper-onboarding-api
+
+# PostgreSQL の状態を確認
+oc get deployment postgresql
 
 # Pod の状態を確認
-oc get pods -l app=quarkus-demo
+oc get pods -l app=shipper-onboarding-api
+oc get pods -l app=postgresql
 
 # Pod が起動しない場合
-oc describe pod -l app=quarkus-demo
-oc logs -l app=quarkus-demo
+oc describe pod -l app=shipper-onboarding-api
+oc logs -l app=shipper-onboarding-api
+
+# PostgreSQL ログの確認
+oc logs -l app=postgresql
 
 # イメージが正しくプルされているか確認
-oc describe deployment quarkus-demo | grep Image
+oc describe deployment shipper-onboarding-api | grep Image
 ```
 
 ### パイプラインを完全にやり直す
