@@ -26,11 +26,11 @@ spec:
       - name: git-revision
         value: $(tt.params.git-revision)
       - name: image-name
-        value: image-registry.openshift-image-registry.svc:5000/NAMESPACE/shipper-onboarding-api
+        value: image-registry.openshift-image-registry.svc:5000/tekton-demo/shipper-onboarding-api
       - name: image-tag
         value: $(tt.params.git-commit-sha)
       - name: namespace
-        value: NAMESPACE
+        value: tekton-demo
       workspaces:
       - name: shared-workspace
         volumeClaimTemplate:
