@@ -13,6 +13,7 @@ https://github.com/yKanaGit/Tekton-Git
 - `oc` CLI がインストール済み（バージョン確認: `oc version`）
 - `tkn` CLI がインストール済み（オプション、パイプライン管理用）
 - Git がインストール済み
+- **管理者権限または SCC 設定権限**（buildah タスクに privileged SCC を付与するため）
 
 ## 🏗️ アーキテクチャ
 
@@ -81,6 +82,18 @@ Tekton-Git/
 
 ## 🚀 セットアップ手順
 
+**所要時間:** 約10-15分
+
+**手順の流れ:**
+1. リポジトリをクローン
+2. OpenShift にログイン
+3. プロジェクト作成
+4. Tekton リソースをデプロイ（setup.sh）
+5. **⚠️ SCC 設定（重要！）**
+6. Webhook URL の確認
+7. GitHub Webhook の設定
+8. 動作確認
+
 ### 1. リポジトリをクローン
 
 ```bash
@@ -124,7 +137,29 @@ oc project
 - ✅ Triggers の作成（TriggerBinding, TriggerTemplate, EventListener）
 - ✅ Webhook 用の Route 作成（github-webhook）
 
-### 5. Webhook URL を確認
+### 5. SecurityContextConstraints (SCC) の設定（重要！）
+
+buildah タスクがコンテナイメージをビルドするために、`privileged` 権限が必要です：
+
+```bash
+# pipeline サービスアカウントに privileged SCC を付与
+oc adm policy add-scc-to-user privileged -z pipeline
+
+# 確認
+oc get scc privileged -o yaml | grep -A 5 users
+```
+
+**注意:** この手順を省略すると、buildah タスクが以下のエラーで失敗します：
+```
+PodAdmissionFailed: Privileged containers are not allowed
+```
+
+**セキュリティに関する注意:**
+- 開発環境・テスト環境では `privileged` SCC で問題ありません
+- 本番環境では、より制限的なカスタム SCC の作成を検討してください
+- 詳細は `docs/RESOURCE_OPTIMIZATION.md` を参照
+
+### 6. Webhook URL を確認
 
 セットアップ完了後、以下のコマンドで Webhook URL を確認します：
 
@@ -136,7 +171,7 @@ echo "Webhook URL: https://${WEBHOOK_URL}"
 
 この URL を次のステップで使用します。
 
-### 6. GitHub Webhook の設定
+### 7. GitHub Webhook の設定
 
 1. https://github.com/yKanaGit/Tekton-Git/settings/hooks にアクセス
 2. **Add webhook** ボタンをクリック
